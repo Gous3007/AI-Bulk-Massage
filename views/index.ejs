@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Bulk Messaging by Growfinix</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #25D366;
+            --secondary-color: #128C7E;
+            --dark-blue: #1e3a5f;
+            --light-gray: #f8f9fa;
+            --medium-gray: #6c757d;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .hero-section {
+            background-color: var(--white);
+            padding: 80px 0;
+            min-height: 70vh;
+        }
+
+        .hero-content h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--dark-blue);
+            margin-bottom: 1rem;
+        }
+
+        .hero-content p {
+            font-size: 1.25rem;
+            color: var(--medium-gray);
+            margin-bottom: 2rem;
+        }
+
+        .btn-primary-custom {
+            background-color: var(--primary-color);
+            border: none;
+            padding: 15px 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-custom:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+        }
+
+        .whatsapp-illustration {
+            position: relative;
+            height: 400px;
+        }
+
+        .message-bubble {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 18px;
+            position: absolute;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .message-bubble:nth-child(1) {
+            top: 50px;
+            left: 20px;
+            animation-delay: 0s;
+        }
+
+        .message-bubble:nth-child(2) {
+            top: 120px;
+            right: 30px;
+            animation-delay: 1s;
+        }
+
+        .message-bubble:nth-child(3) {
+            top: 200px;
+            left: 50px;
+            animation-delay: 2s;
+        }
+
+        .message-bubble:nth-child(4) {
+            top: 280px;
+            right: 20px;
+            animation-delay: 0.5s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .features-section {
+            background-color: var(--light-gray);
+            padding: 80px 0;
+        }
+
+        .section-heading {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--dark-blue);
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .feature-card {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h5 {
+            color: var(--dark-blue);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .pricing-section {
+            background-color: var(--white);
+            padding: 80px 0;
+        }
+
+        .pricing-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            height: 100%;
+            position: relative;
+        }
+
+        .pricing-card.active {
+            border: 3px solid var(--primary-color);
+            box-shadow: 0 8px 25px rgba(37, 211, 102, 0.2);
+        }
+
+        .pricing-card.coming-soon {
+            opacity: 0.6;
+            filter: grayscale(100%);
+        }
+
+        .coming-soon-badge {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--medium-gray);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .price {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--dark-blue);
+        }
+
+        .use-cases-section {
+            background-color: var(--light-gray);
+            padding: 80px 0;
+        }
+
+        .use-case-card {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        .use-case-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .use-case-icon {
+            font-size: 2.5rem;
+            color: var(--secondary-color);
+            margin-bottom: 1rem;
+        }
+
+        .footer {
+            background-color: var(--dark-blue);
+            color: white;
+            padding: 40px 0 20px;
+        }
+
+        .footer-links a {
+            color: #ccc;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary-color);
+        }
+
+        .social-icons a {
+            color: #ccc;
+            font-size: 1.5rem;
+            margin: 0 10px;
+            transition: color 0.3s ease;
+        }
+
+        .social-icons a:hover {
+            color: var(--primary-color);
+        }
+
+        @media (max-width: 768px) {
+            .hero-content h1 {
+                font-size: 2rem;
+            }
+
+            .section-heading {
+                font-size: 2rem;
+            }
+
+            .whatsapp-illustration {
+                height: 300px;
+                margin-top: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#" style="color: var(--dark-blue); font-size: 1.5rem;">
+                <i class="fab fa-whatsapp" style="color: var(--primary-color);"></i> Growfinix
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#pricing">Pricing</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#use-cases">Use Cases</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#contact">Contact</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <div class="hero-content">
+                        <h1>WhatsApp Bulk Messaging by Growfinix</h1>
+                        <p>Send messages to thousands of customers in one click. Streamline your communication and boost
+                            your business reach with our powerful automation platform.</p>
+                        <a href="/send-message"><button class="btn btn-primary-custom">
+                            <i class="fas fa-rocket me-2"></i>Start Bulk Messaging
+                        </button></a>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="whatsapp-illustration">
+                        <div class="message-bubble">Hi John! New offers available 🎉</div>
+                        <div class="message-bubble">Your order is confirmed ✅</div>
+                        <div class="message-bubble">Flash sale starts now! 50% OFF</div>
+                        <div class="message-bubble">Thank you for your purchase 💫</div>
+                        <div class="text-center mt-4">
+                            <i class="fab fa-whatsapp"
+                                style="font-size: 8rem; color: var(--primary-color); opacity: 0.1;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+        <div class="container">
+            <h2 class="section-heading">Why Choose Our Bulk Messaging?</h2>
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <h5>Send Thousands Instantly</h5>
+                        <p>Deliver messages to thousands of customers simultaneously with lightning-fast speed and
+                            reliability.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-user-tag"></i>
+                        </div>
+                        <h5>Personalized Messages</h5>
+                        <p>Automatically personalize each message with customer names and custom variables for better
+                            engagement.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-file-excel"></i>
+                        </div>
+                        <h5>Excel & CSV Import</h5>
+                        <p>Easily import your contact lists from Excel or CSV files with our intuitive bulk upload
+                            system.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h5>Real-time Reports</h5>
+                        <p>Track delivery status, read rates, and campaign performance with comprehensive analytics
+                            dashboard.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <h5>Automated Scheduling</h5>
+                        <p>Schedule your campaigns in advance and let our system handle the timing for optimal delivery
+                            rates.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing-section">
+        <div class="container">
+            <h2 class="section-heading">Simple Pricing Plans</h2>
+            <div class="row justify-content-center g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="pricing-card coming-soon">
+                        <div class="coming-soon-badge">Coming Soon</div>
+                        <h4>Starter</h4>
+                        <div class="price">$29<small>/month</small></div>
+                        <ul class="list-unstyled mt-3">
+                            <li><i class="fas fa-check text-success me-2"></i>1,000 messages/month</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Basic analytics</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Email support</li>
+                        </ul>
+                        <button class="btn btn-outline-secondary w-100" disabled>Coming Soon</button>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="pricing-card active">
+                        <h4>Professional</h4>
+                        <div class="price">$79<small>/month</small></div>
+                        <ul class="list-unstyled mt-3">
+                            <li><i class="fas fa-check text-success me-2"></i>10,000 messages/month</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Advanced analytics</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Personalization</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Scheduling</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Priority support</li>
+                        </ul>
+                        <button class="btn btn-primary-custom w-100">Subscribe Now</button>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="pricing-card coming-soon">
+                        <div class="coming-soon-badge">Coming Soon</div>
+                        <h4>Enterprise</h4>
+                        <div class="price">$199<small>/month</small></div>
+                        <ul class="list-unstyled mt-3">
+                            <li><i class="fas fa-check text-success me-2"></i>Unlimited messages</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Custom integrations</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Dedicated support</li>
+                            <li><i class="fas fa-check text-success me-2"></i>White-label option</li>
+                        </ul>
+                        <button class="btn btn-outline-secondary w-100" disabled>Coming Soon</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Use Cases Section -->
+    <section id="use-cases" class="use-cases-section">
+        <div class="container">
+            <h2 class="section-heading">Who Can Use It?</h2>
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="use-case-card">
+                        <div class="use-case-icon">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <h5>Small Businesses</h5>
+                        <p>Send promotional offers, order updates, and customer service messages to grow your local
+                            business.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="use-case-card">
+                        <div class="use-case-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <h5>E-commerce Stores</h5>
+                        <p>Notify customers about new products, abandoned carts, and delivery updates to boost sales.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="use-case-card">
+                        <div class="use-case-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <h5>Schools & Institutes</h5>
+                        <p>Share important announcements, exam schedules, and fee reminders with students and parents.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="use-case-card">
+                        <div class="use-case-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <h5>Event Organizers</h5>
+                        <p>Send event invitations, updates, and reminders to ensure maximum attendance and engagement.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="use-case-card">
+                        <div class="use-case-icon">
+                            <i class="fas fa-bullhorn"></i>
+                        </div>
+                        <h5>Marketing Agencies</h5>
+                        <p>Manage multiple client campaigns with advanced analytics and personalized messaging features.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-4 col-md-6 mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fab fa-whatsapp me-2" style="color: var(--primary-color); font-size: 1.5rem;"></i>
+                        <span class="fw-bold">Powered by Growfinix</span>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-3">
+                    <div class="footer-links text-center">
+                        <a href="#features">Features</a>
+                        <a href="#pricing">Pricing</a>
+                        <a href="#contact">Contact</a>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-12 mb-3">
+                    <div class="social-icons text-end">
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-whatsapp"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-3" style="border-color: #495057;">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="mb-0">&copy; 2024 Growfinix. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

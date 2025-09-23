@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Bulk Messaging Dashboard - Growfinix</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1e3a8a;
+            --secondary-color: #f8f9fa;
+            --dark-color: #212529;
+            --light-gray: #e9ecef;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: white;
+            border-right: 1px solid var(--light-gray);
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-nav-item {
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .sidebar-nav-link {
+            display: block;
+            padding: 15px 20px;
+            color: var(--dark-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-nav-link:hover,
+        .sidebar-nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        .navbar {
+            background-color: white;
+            border-bottom: 1px solid var(--light-gray);
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            border: 1px solid var(--light-gray);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .metric-label {
+            color: var(--dark-color);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #1e40af;
+            border-color: #1e40af;
+        }
+
+        .card {
+            border: 1px solid var(--light-gray);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-connected {
+            color: var(--success-color);
+        }
+
+        .status-disconnected {
+            color: var(--danger-color);
+        }
+
+        .qr-container {
+            min-height: 300px;
+            background: white;
+            border: 2px dashed var(--light-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+
+        .footer {
+            background-color: white;
+            border-top: 1px solid var(--light-gray);
+            padding: 20px 0;
+            margin-top: 50px;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+        }
+
+        .chart-container {
+            height: 300px;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h4 class="text-primary mb-0">
+                <i class="fab fa-whatsapp me-2"></i>
+                Growfinix
+            </h4>
+            <small class="text-muted">Bulk Messaging Platform</small>
+        </div>
+        <ul class="sidebar-nav">
+            <li class="sidebar-nav-item">
+                <a href="#dashboard" class="sidebar-nav-link active" onclick="showSection('dashboard')">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    Dashboard Home
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#connect" class="sidebar-nav-link" onclick="showSection('connect')">
+                    <i class="fas fa-qrcode me-2"></i>
+                    Connect WhatsApp
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#send-messages" class="sidebar-nav-link" onclick="showSection('send-messages')">
+                    <i class="fas fa-paper-plane me-2"></i>
+                    Send Messages
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#ai-generator" class="sidebar-nav-link" onclick="showSection('ai-generator')">
+                    <i class="fas fa-robot me-2"></i>
+                    AI Message Generator
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#scheduled" class="sidebar-nav-link" onclick="showSection('scheduled')">
+                    <i class="fas fa-clock me-2"></i>
+                    Scheduled Campaigns
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#contacts" class="sidebar-nav-link" onclick="showSection('contacts')">
+                    <i class="fas fa-address-book me-2"></i>
+                    Contacts Management
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#templates" class="sidebar-nav-link" onclick="showSection('templates')">
+                    <i class="fas fa-file-text me-2"></i>
+                    Templates Library
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#analytics" class="sidebar-nav-link" onclick="showSection('analytics')">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Analytics & Reports
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#settings" class="sidebar-nav-link" onclick="showSection('settings')">
+                    <i class="fas fa-cog me-2"></i>
+                    Settings
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-light">
+            <div class="container-fluid">
+                <button class="btn btn-outline-secondary d-md-none" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <button class="btn btn-outline-secondary d-none d-md-block" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="ms-auto">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-2"></i>
+                            Admin User
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Dashboard Home Section -->
+        <div id="dashboard" class="content-section active">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Dashboard Overview</h2>
+                <div>
+                    <button class="btn btn-primary me-2">
+                        <i class="fas fa-play me-2"></i>Start Campaign
+                    </button>
+                    <button class="btn btn-outline-primary">
+                        <i class="fas fa-upload me-2"></i>Upload Contacts
+                    </button>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="metric-card">
+                        <div class="metric-value">15,234</div>
+                        <div class="metric-label">Total Messages Sent</div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="metric-card">
+                        <div class="metric-value">14,890</div>
+                        <div class="metric-label">Messages Delivered</div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="metric-card">
+                        <div class="metric-value">12,456</div>
+                        <div class="metric-label">Messages Read</div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="metric-card">
+                        <div class="metric-value">2,345</div>
+                        <div class="metric-label">Replies Received</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Recent Campaigns</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Campaign Name</th>
+                                            <th>Date</th>
+                                            <th>Recipients</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>New Year Offer</td>
+                                            <td>Jan 01, 2025</td>
+                                            <td>5,230</td>
+                                            <td><span class="badge bg-success">Completed</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Product Launch</td>
+                                            <td>Dec 28, 2024</td>
+                                            <td>3,456</td>
+                                            <td><span class="badge bg-success">Completed</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Follow-up Campaign</td>
+                                            <td>Dec 25, 2024</td>
+                                            <td>2,100</td>
+                                            <td><span class="badge bg-warning">Scheduled</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>WhatsApp Status</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <i class="fas fa-check-circle fa-3x status-connected mb-3"></i>
+                            <h6 class="status-connected">Connected</h6>
+                            <p class="text-muted small">Last sync: 2 minutes ago</p>
+                            <button class="btn btn-outline-danger btn-sm">Disconnect</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connect WhatsApp Section -->
+        <div id="connect" class="content-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Connect WhatsApp</h2>
+                <button class="btn btn-outline-secondary" onclick="refreshQR()">
+                    <i class="fas fa-sync me-2"></i>Refresh QR Code
+                </button>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Scan QR Code</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="qr-container mb-3">
+                                <div class="text-center">
+                                    <i class="fas fa-qrcode fa-5x text-muted mb-3"></i>
+                                    <p class="text-muted">QR Code will appear here</p>
+                                    <button class="btn btn-primary" onclick="generateQR()">Generate QR Code</button>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <strong>Instructions:</strong>
+                                <ol class="mb-0 mt-2">
+                                    <li>Open WhatsApp on your phone</li>
+                                    <li>Go to Settings → Linked Devices</li>
+                                    <li>Tap "Link a Device"</li>
+                                    <li>Scan the QR code above</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Connection Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center mb-4">
+                                <i class="fas fa-times-circle fa-4x status-disconnected mb-3"></i>
+                                <h5 class="status-disconnected">Not Connected</h5>
+                                <p class="text-muted">Please scan the QR code to connect</p>
+                            </div>
+                            <div class="list-group">
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    Phone Number
+                                    <span class="text-muted">Not available</span>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    Device Name
+                                    <span class="text-muted">Not available</span>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    Last Seen
+                                    <span class="text-muted">Not available</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Send Messages Section -->
+        <div id="send-messages" class="content-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Send Messages</h2>
+                <button class="btn btn-success">
+                    <i class="fas fa-paper-plane me-2"></i>Send Campaign
+                </button>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Compose Message</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <div class="mb-3">
+                                    <label class="form-label">Message Type</label>
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check" name="messageType" id="individual"
+                                            checked>
+                                        <label class="btn btn-outline-primary" for="individual">Individual</label>
+                                        <input type="radio" class="btn-check" name="messageType" id="group">
+                                        <label class="btn btn-outline-primary" for="group">Group</label>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Upload Contacts</label>
+                                    <input type="file" class="form-control" accept=".csv,.xlsx">
+                                    <div class="form-text">Upload CSV or Excel file with phone numbers</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Message Content</label>
+                                    <textarea class="form-control" rows="5"
+                                        placeholder="Type your message here..."></textarea>
+                                    <div class="d-flex justify-content-between mt-2">
+                                        <button type="button" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-magic me-2"></i>Generate with AI
+                                        </button>
+                                        <small class="text-muted">0/1000 characters</small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Attach Media (Optional)</label>
+                                    <input type="file" class="form-control" accept="image/*,video/*,.pdf">
+                                    <div class="form-text">Supported formats: Images, Videos, PDF</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Schedule Options</label>
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check" name="schedule" id="sendNow" checked>
+                                        <label class="btn btn-outline-secondary" for="sendNow">Send Now</label>
+                                        <input type="radio" class="btn-check" name="schedule" id="sendLater">
+                                        <label class="btn btn-outline-secondary" for="sendLater">Schedule</label>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3" id="scheduleDateTime" style="display: none;">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Date</label>
+                                        <input type="date" class="form-control">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Time</label>
+                                        <input type="time" class="form-control">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Preview</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="border rounded p-3 bg-light">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="bg-success rounded-circle p-2 me-2">
+                                        <i class="fab fa-whatsapp text-white"></i>
+                                    </div>
+                                    <strong>Your Business</strong>
+                                </div>
+                                <p class="mb-0 text-muted">Message preview will appear here...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5>Campaign Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Recipients:</span>
+                                <strong>0</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Estimated Cost:</span>
+                                <strong>₹0.00</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Send Time:</span>
+                                <strong>Immediate</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Message Generator Section -->
+        <div id="ai-generator" class="content-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>AI Message Generator</h2>
+                <button class="btn btn-outline-primary">
+                    <i class="fas fa-save me-2"></i>Save to Templates
+                </button>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Generate Message</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <div class="mb-3">
+                                    <label class="form-label">Message Purpose</label>
+                                    <select class="form-select">
+                                        <option>Select purpose...</option>
+                                        <option>Promotional Offer</option>
+                                        <option>Greeting Message</option>
+                                        <option>Follow-up</option>
+                                        <option>Product Launch</option>
+                                        <option>Event Invitation</option>
+                                        <option>Payment Reminder</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Target Audience</label>
+                                    <select class="form-select">
+                                        <option>Select audience...</option>
+                                        <option>New Customers</option>
+                                        <option>Existing Customers</option>
+                                        <option>VIP Customers</option>
+                                        <option>Prospects</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Tone</label>
+                                    <select class="form-select">
+                                        <option>Professional</option>
+                                        <option>Friendly</option>
+                                        <option>Casual</option>
+                                        <option>Urgent</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Additional Details</label>
+                                    <textarea class="form-control" rows="3"
+                                        placeholder="Provide specific details about your offer, product, or message..."></textarea>
+                                </div>
+
+                                <button type="button" class="btn btn-primary w-100">
+                                    <i class="fas fa-magic me-2"></i>Generate Message
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Generated Message</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="border rounded p-3 mb-3" style="min-height: 200px; background-color: #f8f9fa;">
+                                <p class="text-muted text-center">Generated message will appear here...</p>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary flex-fill">
+                                    <i class="fas fa-sync me-2"></i>Regenerate
+                                </button>
+                                <button class="btn btn-outline-primary flex-fill">
+                                    <i class="fas fa-edit me-2"></i>Edit
+                                </button>
+                                <button class="btn btn-primary flex-fill">
+                                    <i class="fas fa-paper-plane me-2"></i>Use Message
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5>Recent Generations</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group list-group-flush">
+                                <div class="list-group-item px-0">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">New Year Offer</h6>
+                                            <p class="mb-1 small text-muted">🎉 Happy New Year! Get 50% off...</p>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-primary">Use</button>
+                                    </div>
+                                </div>
+                                <div class="list-group-item px-0">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">Follow-up Message</h6>
+                                            <p class="mb-1 small text-muted">Hi there! Hope you're doing well...</p>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-primary">Use</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scheduled Campaigns Section -->
+        <div id="scheduled" class="content-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Scheduled Campaigns</h2>
+                <button class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>New Campaign
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Campaign Name</th>
+                                    <th>Recipients</th>
+                                    <th>Scheduled Date</th>
+                                    <th>Status</th>
+                                    <th>Progress</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <strong>Valentine's Day Promotion</strong>
+                                        <br><small class="text-muted">Special offers for couples</small>
+                                    </td>
+                                    <td>8,450</td>
+                                    <td>Feb 14, 2025 10:00 AM</td>
+                                    <td><span class="badge bg-warning">Scheduled</span></td>
+                                    <td>
+                                        <div class="progress" style="width: 100px;">
+                                            <div class="progress-bar" style="width: 0%"></div>
+                                        </div>
+                                        <small class="text-muted">0%</small>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <strong>Product Restock Alert</strong>
+                                        <br><small class="text-muted">Notify about new inventory</small>
+                                    </td>
+                                    <td>3,240</td>
+                                    <td>Jan 20, 2025 2:00 PM</td>
+                                    <td><span class="badge bg-info">In Progress</span></td>
+                                    <td>
+                                        <div class="progress" style="width: 100px;">
+                                            <div class="progress-bar" style="width: 65%"></div>
+                                        </div>
+                                        <small class="text-muted">65%</small>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-warning me-1">
+                                            <i class="fas fa-pause"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <strong>Weekend Sale Reminder</strong>
+                                        <br><small class="text-muted">Final hours discount alert</small>
+                                    </td>
+                                    <td>5,670</td>
+                                    <td>Jan 18, 2025 8:00 PM</td>
+                                    <td><span class="badge bg-success">Completed</span></td>
+                                    <td>
+                                        <div class="progress" style="width: 100px;">
+                                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                                        </div>
+                                        <small class="text-muted">100%</small>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info me-1">
+                                            <i class="fas fa-chart-bar"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contacts Management Section -->
+        <div id="contacts" class="content-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Contacts Management</h2>
+                <div>
+                    <button class="btn btn-outline-primary me-2">
+                        <i class="fas fa-upload me-2"></i>Import Contacts
+                    </button>
+                    <button class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Add Contact
+                    </button>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-primary">12,456</h3>
+                            <p class="text-muted mb-0">Total Contacts</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-success">11,890</h3>
+                            <p class="text-muted mb-0">Active Contacts</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-warning">566</h3>
+                            <p class="text-muted mb-0">Blocked Contacts</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5>Contact List</h5>
+                        <div class="d-flex gap-2">
+                            <input type="search" class="form-control" placeholder="Search contacts...">
+                            <select class="form-select">
+                                <option>All Groups</option>
+                                <option>VIP Customers</option>
+                                <option>New Leads</option>
+                                <option>Prospects</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" class="form-check-input">
+                                    </th>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Group</th>
+                                    <th>Status</th>
+                                    <th>Last Contact</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="checkbox" class="form-check-input"></td>
+                                    <td>
+                                        <strong>John Doe</strong>
+                                        <br><small class="text-muted">john@example.com</small>
+                                    </td>
+                                    <td>+91 98765 43210</td>
+                                    <td><span class="badge bg-primary">VIP Customer</span></td>
+                                    <td><span class="badge bg-success">Active</span></td>
+                                    <td>Jan 15, 2025</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info me-1">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox" class="form-check-input"></td>
+                                    <td>
+                                        <strong>Sarah Smith</strong>
+                                        <br><small class="text-muted">sarah@example.com</small>
+                                    </td>
+                                    <td>+91 87654 32109</td>
+                                    <td><span class="badge bg-info">New Lead</span></td>
+                                    <td><span class="badge bg-success">Active</span></td>
+                                    <td>Jan 14, 2025</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info me-1">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox" class="form-check-input"></td>
+                                    <td>
+                                        <strong>Mike Johnson</strong>
+                                        <br><small class="text-muted">mike@example.com</small>
+                                    </td>
+                                    <td>+91 76543 21098</td>
+                                    <td><span class="badge bg-secondary">Prospect</span></td>
+                                    <td><span class="badge bg-warning">Blocked</span></td>
+                                    <td>Jan 10, 2025</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-success me-1">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-primary me-1">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <nav class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item disabled">
+                                <span class="page-link">Previous</span>
+                            </li>
+                            <li class="page-item active">
+                                <span class="page-link">1</span>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">2</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">3</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Templates Library Section -->
+        <div id="templates" class="content-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Templates Library</h2>
+                <button class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Create Template
+                </button>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-primary">45</h3>
+                            <p class="text-muted mb-0">Total Templates</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-success">12</h3>
+                            <p class="text-muted mb-0">Promotional</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-info">18</h3>
+                            <p class="text-muted mb-0">Follow-up</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-warning">15</h3>
+                            <p class="text-muted mb-0">Greetings</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">New Year Greeting</h6>
+                            <span class="badge bg-success">Greeting</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text text-muted small">🎉 Happy New Year! Wishing you success and prosperity
+                                in the coming year. Thank you for being a valued customer...</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">Used 234 times</small>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Flash Sale Alert</h6>
+                            <span class="badge bg-primary">Promotional</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text text-muted small">⚡ FLASH SALE ALERT! Get up to 70% OFF on selected
+                                items. Limited time offer - only 24 hours left! Shop now and save big...</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">Used 156 times</small>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Payment Reminder</h6>
+                            <span class="badge bg-warning">Follow-up</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text text-muted small">📋 Friendly reminder: Your payment of ₹[AMOUNT] is due
+                                on [DATE]. Please make the payment to avoid any late fees...</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">Used 89 times</small>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Welcome Message</h6>
+                            <span class="badge bg-info">Greeting</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text text-muted small">👋 Welcome to our family! Thank you for choosing us.
+                                We're excited to serve you and provide the best experience...</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">Used 312 times</small>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Order Confirmation</h6>
+                            <span class="badge bg-secondary">Transactional</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text text-muted small">✅ Order confirmed! Your order #[ORDER_ID] has been
+                                received and is being processed. Expected delivery: [DATE]...</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">Used 445 times</small>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Birthday Wishes</h6>
+                            <span class="badge bg-success">Greeting</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text text-muted small">🎂 Happy Birthday! Hope your special day is filled
+                                with happiness and joy. Here's a special birthday discount just for you...</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">Used 67 times</small>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics & Reports Section -->
+        <div id="analytics" class="content-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Analytics & Reports</h2>
+                <div>
+                    <button class="btn btn-outline-primary me-2">
+                        <i class="fas fa-download me-2"></i>Export Report
+                    </button>
+                    <select class="btn btn-outline-secondary">
+                        <option>Last 7 Days</option>
+                        <option>Last 30 Days</option>
+                        <option>Last 3 Months</option>
+                        <option>Custom Range</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-paper-plane fa-2x text-primary mb-2"></i>
+                            <h3 class="text-primary">25,345</h3>
+                            <p class="text-muted mb-0">Messages Sent</p>
+                            <small class="text-success">↑ 12% vs last month</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <h3 class="text-success">24,123</h3>
+                            <p class="text-muted mb-0">Delivered</p>
+                            <small class="text-success">↑ 8% vs last month</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-eye fa-2x text-info mb-2"></i>
+                            <h3 class="text-info">18,456</h3>
+                            <p class="text-muted mb-0">Read</p>
+                            <small class="text-info">↑ 5% vs last month</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-reply fa-2x text-warning mb-2"></i>
+                            <h3 class="text-warning">3,567</h3>
+                            <p class="text-muted mb-0">Replied</p>
+                            <small class="text-success">↑ 15% vs last month</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Message Delivery Trends</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-chart-line fa-3x mb-3"></i>
+                                    <p>Message delivery chart would appear here</p>
+                                    <small>Showing delivery rates over time</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Campaign Performance</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                                    <p>Campaign performance chart</p>
+                                    <small>Success rate by campaign type</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent Campaign Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Campaign</th>
+                                    <th>Date</th>
+                                    <th>Recipients</th>
+                                    <th>Delivered</th>
+                                    <th>Read Rate</th>
+                                    <th>Reply Rate</th>
+                                    <th>Performance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>New Year Promotion</td>
+                                    <td>Jan 01, 2025</td>
+                                    <td>5,230</td>
+                                    <td>98.5%</td>
+                                    <td>76.2%</td>
+                                    <td>12.4%</td>
+                                    <td><span class="badge bg-success">Excellent</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Product Launch</td>
+                                    <td>Dec 28, 2024</td>
+                                    <td>3,456</td>
+                                    <td>95.3%</td>
+                                    <td>68.7%</td>
+                                    <td>8.9%</td>
+                                    <td><span class="badge bg-primary">Good</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Holiday Wishes</td>
+                                    <td>Dec 25, 2024</td>
+                                    <td>8,920</td>
+                                    <td>97.1%</td>
+                                    <td>82.3%</td>
+                                    <td>15.6%</td>
+                                    <td><span class="badge bg-success">Excellent</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Flash Sale Alert</td>
+                                    <td>Dec 20, 2024</td>
+                                    <td>2,145</td>
+                                    <td>92.8%</td>
+                                    <td>45.2%</td>
+                                    <td>6.3%</td>
+                                    <td><span class="badge bg-warning">Average</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div id="settings" class="content-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Settings</h2>
+                <button class="btn btn-success">
+                    <i class="fas fa-save me-2"></i>Save Changes
+                </button>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Account Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Company Name</label>
+                                        <input type="text" class="form-control" value="Growfinix Technologies">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Business Type</label>
+                                        <select class="form-select">
+                                            <option>E-commerce</option>
+                                            <option>Service Provider</option>
+                                            <option>Manufacturing</option>
+                                            <option>Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Contact Email</label>
+                                        <input type="email" class="form-control" value="admin@growfinix.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Contact Phone</label>
+                                        <input type="tel" class="form-control" value="+91 98765 43210">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Business Address</label>
+                                    <textarea class="form-control"
+                                        rows="3">123 Business Street, Tech Park, Mumbai, Maharashtra, India</textarea>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Time Zone</label>
+                                        <select class="form-select">
+                                            <option>Asia/Kolkata (IST)</option>
+                                            <option>UTC</option>
+                                            <option>America/New_York</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Language</label>
+                                        <select class="form-select">
+                                            <option>English</option>
+                                            <option>Hindi</option>
+                                            <option>Marathi</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5>WhatsApp Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <div class="mb-3">
+                                    <label class="form-label">Default Message Delay (seconds)</label>
+                                    <input type="number" class="form-control" value="2" min="1" max="10">
+                                    <div class="form-text">Delay between messages to avoid being flagged as spam</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Messages Per Hour Limit</label>
+                                    <input type="number" class="form-control" value="100" min="10" max="500">
+                                    <div class="form-text">Maximum number of messages to send per hour</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="readReceipts" checked>
+                                        <label class="form-check-label" for="readReceipts">
+                                            Track Read Receipts
+                                        </label>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5>Notification Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="emailNotifications" checked>
+                                        <label class="form-check-label" for="emailNotifications">
+                                            Email Notifications
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="campaignAlerts" checked>
+                                        <label class="form-check-label" for="campaignAlerts">
+                                            Campaign Completion Alerts
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="systemAlerts">
+                                        <label class="form-check-label" for="systemAlerts">
+                                            System Maintenance Alerts
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="weeklyReports" checked>
+                                        <label class="form-check-label" for="weeklyReports">
+                                            Weekly Performance Reports
+                                        </label>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Account Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center"
+                                    style="width: 80px; height: 80px;">
+                                    <i class="fas fa-user fa-2x text-white"></i>
+                                </div>
+                                <h5 class="mt-2">Admin User</h5>
+                                <p class="text-muted">Administrator</p>
+                            </div>
+
+                            <div class="list-group list-group-flush">
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <span>Plan</span>
+                                    <strong class="text-primary">Professional</strong>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <span>Messages Left</span>
+                                    <strong>8,450</strong>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <span>Renewal Date</span>
+                                    <strong>Feb 15, 2025</strong>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <span>Account Status</span>
+                                    <span class="badge bg-success">Active</span>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-outline-primary w-100 mt-3">
+                                <i class="fas fa-credit-card me-2"></i>Upgrade Plan
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5>Security</h5>
+                        </div>
+                        <div class="card-body">
+                            <button class="btn btn-outline-secondary w-100 mb-2">
+                                <i class="fas fa-key me-2"></i>Change Password
+                            </button>
+                            <button class="btn btn-outline-info w-100 mb-2">
+                                <i class="fas fa-shield-alt me-2"></i>Two-Factor Auth
+                            </button>
+                            <button class="btn btn-outline-warning w-100">
+                                <i class="fas fa-download me-2"></i>Backup Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <i class="fab fa-whatsapp fa-2x text-success me-3"></i>
+                        <div>
+                            <h5 class="mb-0">WhatsApp Bulk Messaging</h5>
+                            <small class="text-muted">Powered by Growfinix</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-md-end justify-content-start align-items-center">
+                        <div class="me-4">
+                            <h6 class="mb-1">Quick Links</h6>
+                            <a href="#dashboard" class="text-decoration-none me-3"
+                                onclick="showSection('dashboard')">Dashboard</a>
+                            <a href="#settings" class="text-decoration-none me-3"
+                                onclick="showSection('settings')">Settings</a>
+                            <a href="#" class="text-decoration-none">Support</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="text-muted mb-0">
+                        © 2025 Growfinix Technologies. All rights reserved. |
+                        <a href="#" class="text-decoration-none">Privacy Policy</a> |
+                        <a href="#" class="text-decoration-none">Terms of Service</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let sidebarCollapsed = false;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function () {
+            // Show dashboard section by default
+            showSection('dashboard');
+
+            // Initialize event listeners
+            initializeEventListeners();
+        });
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+
+            sidebarCollapsed = !sidebarCollapsed;
+
+            if (window.innerWidth > 768) {
+                if (sidebarCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    mainContent.classList.add('expanded');
+                } else {
+                    sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('expanded');
+                }
+            } else {
+                sidebar.classList.toggle('show');
+            }
+        }
+
+        // Show specific section
+        function showSection(sectionId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Show selected section
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+
+            // Update sidebar active state
+            const navLinks = document.querySelectorAll('.sidebar-nav-link');
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + sectionId) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Hide sidebar on mobile after selection
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('show');
+            }
+        }
+
+        // Initialize event listeners
+        function initializeEventListeners() {
+            // Schedule radio buttons
+            const scheduleRadios = document.querySelectorAll('input[name="schedule"]');
+            const scheduleDateTime = document.getElementById('scheduleDateTime');
+
+            scheduleRadios.forEach(radio => {
+                radio.addEventListener('change', function () {
+                    if (this.id === 'sendLater') {
+                        scheduleDateTime.style.display = 'block';
+                    } else {
+                        scheduleDateTime.style.display = 'none';
+                    }
+                });
+            });
+
+            // Message type change
+            const messageTypeRadios = document.querySelectorAll('input[name="messageType"]');
+            messageTypeRadios.forEach(radio => {
+                radio.addEventListener('change', function () {
+                    updateMessagePreview();
+                });
+            });
+
+            // Character counter for message textarea
+            const messageTextarea = document.querySelector('#send-messages textarea');
+            if (messageTextarea) {
+                messageTextarea.addEventListener('input', function () {
+                    const charCount = this.value.length;
+                    const counter = this.parentNode.querySelector('small');
+                    if (counter) {
+                        counter.textContent = `${charCount}/1000 characters`;
+                    }
+                    updateMessagePreview();
+                });
+            }
+        }
+
+        // Update message preview
+        function updateMessagePreview() {
+            const messageTextarea = document.querySelector('#send-messages textarea');
+            const previewText = document.querySelector('#send-messages .bg-light p');
+
+            if (messageTextarea && previewText) {
+                const message = messageTextarea.value || 'Message preview will appear here...';
+                previewText.textContent = message;
+            }
+        }
+
+        // Generate QR Code (mock function)
+        function generateQR() {
+            const qrContainer = document.querySelector('.qr-container');
+            qrContainer.innerHTML = `
+                <div class="text-center">
+                    <div class="border border-2 border-dark p-3 d-inline-block bg-white">
+                        <div style="width: 200px; height: 200px; background: repeating-conic-gradient(#000 0% 25%, white 0% 50%) 50% / 20px 20px;"></div>
+                    </div>
+                    <p class="text-muted mt-3">Scan this QR code with WhatsApp</p>
+                    <small class="text-muted">QR code expires in 2 minutes</small>
+                </div>
+            `;
+
+            // Simulate connection after 10 seconds
+            setTimeout(() => {
+                simulateConnection();
+            }, 10000);
+        }
+
+        // Refresh QR Code
+        function refreshQR() {
+            const qrContainer = document.querySelector('.qr-container');
+            qrContainer.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Generating new QR code...</p>
+                </div>
+            `;
+
+            setTimeout(() => {
+                generateQR();
+            }, 2000);
+        }
+
+        // Simulate WhatsApp connection
+        function simulateConnection() {
+            // Update connection status in connect page
+            const statusIcon = document.querySelector('#connect .fa-times-circle');
+            const statusText = document.querySelector('#connect h5');
+            const statusDescription = document.querySelector('#connect .text-muted');
+
+            if (statusIcon && statusText && statusDescription) {
+                statusIcon.className = 'fas fa-check-circle fa-4x status-connected mb-3';
+                statusText.textContent = 'Connected';
+                statusText.className = 'status-connected';
+                statusDescription.textContent = 'WhatsApp successfully connected';
+
+                // Update account info
+                const listItems = document.querySelectorAll('#connect .list-group-item');
+                if (listItems.length >= 3) {
+                    listItems[0].innerHTML = 'Phone Number <span class="text-success">+91 98765 43210</span>';
+                    listItems[1].innerHTML = 'Device Name <span class="text-success">Growfinix Dashboard</span>';
+                    listItems[2].innerHTML = 'Last Seen <span class="text-success">Just now</span>';
+                }
+            }
+
+            // Update dashboard status
+            const dashboardStatus = document.querySelector('#dashboard .card-body');
+            if (dashboardStatus) {
+                const syncText = dashboardStatus.querySelector('.text-muted.small');
+                if (syncText) {
+                    syncText.textContent = 'Last sync: Just now';
+                }
+            }
+        }
+
+        // Responsive handling
+        window.addEventListener('resize', function () {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('show');
+                if (!sidebarCollapsed) {
+                    sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('expanded');
+                }
+            } else {
+                sidebar.classList.remove('collapsed');
+                mainContent.classList.remove('expanded');
+            }
+        });
+
+        // Mock functions for interactive elements
+        function startCampaign() {
+            alert('Campaign started successfully!');
+        }
+
+        function uploadContacts() {
+            alert('Contact upload feature would open here.');
+        }
+
+        function exportReport() {
+            alert('Report export would start here.');
+        }
+
+        // Simulate real-time updates
+        setInterval(function () {
+            // Update last sync time randomly
+            const syncElements = document.querySelectorAll('.text-muted.small');
+            syncElements.forEach(element => {
+                if (element.textContent.includes('Last sync:')) {
+                    const randomMinutes = Math.floor(Math.random() * 5) + 1;
+                    element.textContent = `Last sync: ${randomMinutes} minute${randomMinutes > 1 ? 's' : ''} ago`;
+                }
+            });
+        }, 60000); // Update every minute
+
+        // Add click handlers for action buttons
+        document.addEventListener('click', function (e) {
+            // Handle various button clicks
+            if (e.target.matches('.btn') || e.target.closest('.btn')) {
+                const button = e.target.matches('.btn') ? e.target : e.target.closest('.btn');
+
+                // Add loading state for certain actions
+                if (button.textContent.includes('Generate') || button.textContent.includes('Send') || button.textContent.includes('Save')) {
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+                    button.disabled = true;
+
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                    }, 2000);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

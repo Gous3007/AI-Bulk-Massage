@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Message Sender</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            --primary-color: #1a365d;
+            --secondary-color: #2d3748;
+            --accent-color: #2b6cb0;
+            --success-color: #38a169;
+            --warning-color: #d69e2e;
+            --danger-color: #e53e3e;
+            --light-bg: #f7fafc;
+            --white: #ffffff;
+            --text-dark: #1a202c;
+            --text-light: #4a5568;
+            --border-color: #e2e8f0;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--text-dark);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-container {
+            background: var(--white);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .header-section {
+            background: var(--primary-color);
+            color: var(--white);
+            padding: 2rem 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .header-section::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .header-section h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .header-section .subtitle {
+            margin-top: 0.5rem;
+            opacity: 0.9;
+            font-size: 1rem;
+            font-weight: 400;
+        }
+
+        .content-wrapper {
+            padding: 2.5rem;
+        }
+
+        .card-section {
+            background: var(--white);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .card-title i {
+            margin-right: 0.75rem;
+            color: var(--accent-color);
+            font-size: 1.25rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.75rem;
+            display: block;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-control {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            background: var(--white);
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.1);
+            outline: none;
+        }
+
+        .numbers-textarea {
+            resize: vertical;
+            min-height: 120px;
+            max-height: 300px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            overflow-y: auto;
+        }
+
+        .message-textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+            line-height: 1.6;
+        }
+
+        .template-controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .template-select {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .btn-template {
+            background: var(--secondary-color);
+            border: none;
+            color: var(--white);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn-template:hover {
+            background: #1a202c;
+            transform: translateY(-1px);
+        }
+
+        .btn-send {
+            background: var(--accent-color);
+            border: none;
+            color: var(--white);
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(43, 108, 176, 0.3);
+            position: relative;
+        }
+
+        .btn-send:hover:not(:disabled) {
+            background: #2c5aa0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(43, 108, 176, 0.4);
+        }
+
+        .btn-send:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-section {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .status-header {
+            background: var(--white);
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-title {
+            display: flex;
+            align-items: center;
+            margin: 0;
+            color: var(--text-dark);
+            font-weight: 600;
+            font-size: 1.125rem;
+        }
+
+        .status-title i {
+            margin-right: 0.75rem;
+            color: var(--accent-color);
+            font-size: 1.25rem;
+        }
+
+        .status-counters {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .counter {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .counter-sent {
+            background: rgba(56, 161, 105, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(56, 161, 105, 0.2);
+        }
+
+        .counter-pending {
+            background: rgba(214, 158, 46, 0.1);
+            color: var(--warning-color);
+            border: 1px solid rgba(214, 158, 46, 0.2);
+        }
+
+        .counter-failed {
+            background: rgba(229, 62, 62, 0.1);
+            color: var(--danger-color);
+            border: 1px solid rgba(229, 62, 62, 0.2);
+        }
+
+        .status-container {
+            max-height: 400px;
+            overflow-y: auto;
+            background: var(--white);
+        }
+
+        .status-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .status-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .status-container::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+        }
+
+        .status-container::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        .status-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .status-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            font-size: 0.875rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-item:hover {
+            background-color: #f8fafc;
+        }
+
+        .status-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .status-success .status-icon {
+            background: var(--success-color);
+        }
+
+        .status-error .status-icon {
+            background: var(--danger-color);
+        }
+
+        .status-pending .status-icon {
+            background: var(--warning-color);
+        }
+
+        .status-info .status-icon {
+            background: var(--accent-color);
+        }
+
+        .empty-status {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-light);
+            font-style: italic;
+        }
+
+        .loading-spinner {
+            display: none;
+            margin-left: 0.5rem;
+        }
+
+        .btn-send.loading .loading-spinner {
+            display: inline-block;
+        }
+
+        .progress-bar-container {
+            background: #e2e8f0;
+            border-radius: 4px;
+            height: 4px;
+            overflow: hidden;
+            margin: 1rem 1.5rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Template Modal Styles */
+        .modal-header {
+            background: var(--primary-color);
+            color: var(--white);
+            border-bottom: none;
+        }
+
+        .modal-title {
+            font-weight: 600;
+        }
+
+        .monitor-card {
+            background: var(--white);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .monitor-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .monitor-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--white);
+            flex-shrink: 0;
+        }
+
+        .monitor-content {
+            flex: 1;
+        }
+
+        .monitor-title {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .monitor-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .monitor-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            opacity: 0.8;
+        }
+
+        .bg-primary {
+            background: var(--accent-color) !important;
+        }
+
+        .bg-success {
+            background: var(--success-color) !important;
+        }
+
+        .bg-warning {
+            background: var(--warning-color) !important;
+        }
+
+        .bg-info {
+            background: #3182ce !important;
+        }
+
+        .template-item {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: var(--white);
+            transition: all 0.2s ease;
+        }
+
+        .template-item:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .template-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .template-preview {
+            color: var(--text-light);
+            font-size: 0.875rem;
+            line-height: 1.4;
+            background: #f8fafc;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+        }
+
+        .template-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .content-wrapper {
+                padding: 1.5rem;
+            }
+
+            .header-section h1 {
+                font-size: 1.75rem;
+            }
+
+            .template-controls {
+                flex-direction: column;
+            }
+
+            .template-select {
+                min-width: auto;
+            }
+
+            .status-counters {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: flex-end;
+            }
+
+            .counter {
+                font-size: 0.75rem;
+                padding: 0.375rem 0.75rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .content-wrapper {
+                padding: 1rem;
+            }
+
+            .card-section {
+                padding: 1rem;
+            }
+
+            .status-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .status-counters {
+                width: 100%;
+                justify-content: space-between;
+                flex-direction: row;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid px-3 py-4">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <div class="main-container">
+                    <!-- Header Section -->
+                    <div class="header-section">
+                        <div class="container">
+                            <h1><i class="fab fa-whatsapp me-3"></i>WhatsApp Sender Pro</h1>
+                            <p class="subtitle">Professional bulk messaging solution</p>
+                        </div>
+                    </div>
+
+                    <!-- Content Section -->
+                    <div class="content-wrapper">
+                        <!-- Monitoring Dashboard -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h3 class="mb-3 text-dark fw-bold">
+                                    <i class="fas fa-tachometer-alt me-2 text-primary"></i>
+                                    Monitoring Dashboard
+                                </h3>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-3 mb-3">
+                                <div class="monitor-card">
+                                    <div class="monitor-icon bg-primary">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </div>
+                                    <div class="monitor-content">
+                                        <div class="monitor-title">Messages Today</div>
+                                        <div class="monitor-value" id="todayMessages">0</div>
+                                        <div class="monitor-subtitle">Sent today</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-3 mb-3">
+                                <div class="monitor-card">
+                                    <div class="monitor-icon bg-success">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                    <div class="monitor-content">
+                                        <div class="monitor-title">This Month</div>
+                                        <div class="monitor-value" id="monthMessages">0</div>
+                                        <div class="monitor-subtitle">Total sent</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-3 mb-3">
+                                <div class="monitor-card">
+                                    <div class="monitor-icon bg-warning">
+                                        <i class="fas fa-broadcast-tower"></i>
+                                    </div>
+                                    <div class="monitor-content">
+                                        <div class="monitor-title">Live Sending</div>
+                                        <div class="monitor-value" id="liveSending">0</div>
+                                        <div class="monitor-subtitle">In progress</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-3 mb-3">
+                                <div class="monitor-card">
+                                    <div class="monitor-icon bg-info">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="monitor-content">
+                                        <div class="monitor-title">Total Recipients</div>
+                                        <div class="monitor-value" id="totalRecipients">0</div>
+                                        <div class="monitor-subtitle">In queue</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Templates Section -->
+                        <div class="card-section">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-file-alt"></i>
+                                    Message Templates
+                                </h3>
+                            </div>
+                            <div class="template-controls">
+                                <select class="form-control template-select" id="templateSelect">
+                                    <option value="">Select a template...</option>
+                                </select>
+                                <button type="button" class="btn btn-template" data-bs-toggle="modal"
+                                    data-bs-target="#templateModal">
+                                    <i class="fas fa-plus me-1"></i>Manage Templates
+                                </button>
+                            </div>
+                        </div>
+
+                        <form id="sendForm">
+                            <div class="row">
+                                <!-- Phone Numbers Section -->
+                                <div class="col-12 col-lg-6">
+                                    <div class="card-section">
+                                        <div class="card-header">
+                                            <h3 class="card-title">
+                                                <i class="fas fa-phone"></i>
+                                                Phone Numbers
+                                            </h3>
+                                        </div>
+                                        <label class="form-label">Recipients</label>
+                                        <textarea class="form-control numbers-textarea" id="numbers"
+                                            placeholder="919876543210&#10;918765432109&#10;917654321098&#10;&#10;Enter one number per line with country code"
+                                            required></textarea>
+                                        <small class="text-muted mt-2 d-block">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Format: Country code + number (e.g., 919876543210)
+                                        </small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-primary" id="numberCount">0 numbers</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Message Content Section -->
+                                <div class="col-12 col-lg-6">
+                                    <div class="card-section">
+                                        <div class="card-header">
+                                            <h3 class="card-title">
+                                                <i class="fas fa-comment"></i>
+                                                Message Content
+                                            </h3>
+                                        </div>
+                                        <label class="form-label">Your Message</label>
+                                        <textarea class="form-control message-textarea" id="message"
+                                            placeholder="Type your message here...&#10;&#10;Keep it professional and engaging for better delivery rates."
+                                            required></textarea>
+                                        <small class="text-muted mt-2 d-block">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Personalized messages improve engagement
+                                        </small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-secondary" id="charCount">0 characters</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-3">
+                                <button type="submit" class="btn btn-send" id="sendButton">
+                                    <i class="fas fa-paper-plane me-2"></i>
+                                    Send Messages
+                                    <div class="spinner-border spinner-border-sm loading-spinner" role="status">
+                                        <span class="visually-hidden">Sending...</span>
+                                    </div>
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Status Section -->
+                        <div class="status-section mt-4">
+                            <div class="status-header">
+                                <h4 class="status-title">
+                                    <i class="fas fa-chart-line"></i>
+                                    Live Status Monitor
+                                </h4>
+                                <div class="status-counters">
+                                    <div class="counter counter-sent">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span id="sentCount">0</span> Sent
+                                    </div>
+                                    <div class="counter counter-pending">
+                                        <i class="fas fa-clock"></i>
+                                        <span id="pendingCount">0</span> Pending
+                                    </div>
+                                    <div class="counter counter-failed">
+                                        <i class="fas fa-times-circle"></i>
+                                        <span id="failedCount">0</span> Failed
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="progress-bar-container" id="progressContainer" style="display: none;">
+                                <div class="progress-bar" id="progressBar"></div>
+                            </div>
+                            <div class="status-container">
+                                <ul class="status-list" id="statusList">
+                                    <li class="empty-status">
+                                        <i class="fas fa-inbox me-2"></i>
+                                        Ready to send messages. Configure recipients and message above.
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Management Modal -->
+    <div class="modal fade" id="templateModal" tabindex="-1" aria-labelledby="templateModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="templateModalLabel">
+                        <i class="fas fa-file-alt me-2"></i>
+                        Manage Templates
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Add New Template -->
+                    <div class="card-section mb-4">
+                        <h6 class="fw-bold mb-3">
+                            <i class="fas fa-plus me-2"></i>
+                            Add New Template
+                        </h6>
+                        <div class="mb-3">
+                            <label class="form-label">Template Name</label>
+                            <input type="text" class="form-control" id="templateName" placeholder="Enter template name">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Message Content</label>
+                            <textarea class="form-control" id="templateContent" rows="4"
+                                placeholder="Enter your message template"></textarea>
+                        </div>
+                        <button type="button" class="btn btn-primary" id="saveTemplate">
+                            <i class="fas fa-save me-1"></i>Save Template
+                        </button>
+                    </div>
+
+                    <!-- Saved Templates -->
+                    <div class="card-section">
+                        <h6 class="fw-bold mb-3">
+                            <i class="fas fa-list me-2"></i>
+                            Saved Templates
+                        </h6>
+                        <div id="templatesList">
+                            <p class="text-muted text-center py-3">
+                                <i class="fas fa-folder-open me-2"></i>
+                                No templates saved yet
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize Socket.IO (if available)
+        let socket;
+        try {
+            socket = io();
+        } catch (e) {
+            console.log('Socket.IO not available, using demo mode');
+        }
+
+        // DOM Elements
+        const form = document.getElementById('sendForm');
+        const numbersTextarea = document.getElementById('numbers');
+        const messageTextarea = document.getElementById('message');
+        const statusList = document.getElementById('statusList');
+        const sendButton = document.getElementById('sendButton');
+        const templateSelect = document.getElementById('templateSelect');
+        const numberCount = document.getElementById('numberCount');
+        const charCount = document.getElementById('charCount');
+
+        // Counter elements
+        const sentCount = document.getElementById('sentCount');
+        const pendingCount = document.getElementById('pendingCount');
+        const failedCount = document.getElementById('failedCount');
+        const progressBar = document.getElementById('progressBar');
+        const progressContainer = document.getElementById('progressContainer');
+
+        // Template management
+        const templateName = document.getElementById('templateName');
+        const templateContent = document.getElementById('templateContent');
+        const saveTemplateBtn = document.getElementById('saveTemplate');
+        const templatesList = document.getElementById('templatesList');
+
+        // Counters
+        let counts = { sent: 0, pending: 0, failed: 0, total: 0 };
+        let processedNumbers = new Set(); // Track processed numbers to prevent duplicates
+
+        // Load saved templates on page load
+        loadTemplates();
+        loadMessageStats(); // Load message statistics
+        updateNumberCount();
+        updateCharCount();
+
+        // Event Listeners
+        numbersTextarea.addEventListener('input', updateNumberCount);
+        messageTextarea.addEventListener('input', updateCharCount);
+        templateSelect.addEventListener('change', loadSelectedTemplate);
+        saveTemplateBtn.addEventListener('click', saveTemplate);
+
+        // Form submission
+        // form.addEventListener('submit', (e) => {
+        //     e.preventDefault();
+
+        //     // Reset processed numbers for new sending session
+        //     processedNumbers.clear();
+
+        //     const numbersInput = numbersTextarea.value;
+        //     const message = messageTextarea.value;
+
+        //     // Split numbers by newlines and filter out empty lines
+        //     const numbers = numbersInput.split('\n')
+        //         .map(n => n.trim())
+        //         .filter(n => n.length > 0);
+
+        //     if (numbers.length === 0) {
+        //         alert('Please enter at least one phone number');
+        //         return;
+        //     }
+
+        //     if (!message.trim()) {
+        //         alert('Please enter a message');
+        //         return;
+        //     }
+
+        //     // Reset counters
+        //     counts = { sent: 0, pending: numbers.length, failed: 0, total: numbers.length };
+        //     updateCounters();
+
+        //     // Show progress bar
+        //     progressContainer.style.display = 'block';
+        //     progressBar.style.width = '0%';
+
+        //     // Add loading state
+        //     sendButton.classList.add('loading');
+        //     sendButton.disabled = true;
+
+        //     // Clear status list
+        //     statusList.innerHTML = '';
+
+        //     // Update monitoring dashboard
+        //     updateMonitorCard('liveSending', numbers.length);
+        //     updateMonitorCard('totalRecipients', numbers.length);
+
+        //     if (socket) {
+        //         // Send to server via Socket.IO
+        //         socket.emit('send-message', { numbers, message });
+        //     } else {
+        //         // Demo mode - simulate sending
+        //         simulateSending(numbers, message);
+        //     }
+        // });
+
+        // Socket.IO event listeners (if available)
+        if (socket) {
+            // Remove any existing listeners first to prevent duplicates
+            socket.off('message-status');
+
+            // Add single event listener
+            socket.on('message-status', handleMessageStatus);
+        }
+
+        function b64EncodeUnicode(str) {
+            return btoa(unescape(encodeURIComponent(str)));
+        }
+
+        function handleMessageStatus(msg) {
+            // Prevent processing duplicate messages
+            if (statusList.querySelector(`[data-message="${b64EncodeUnicode(msg)}"]`)) {
+                return; // Skip if message already exists
+            }
+
+            addStatusItem(msg);
+
+            // Update counters based on message content
+            if (msg.toLowerCase().includes('success') || msg.toLowerCase().includes('sent')) {
+                counts.sent++;
+                counts.pending = Math.max(0, counts.pending - 1);
+                incrementTodayMessages();
+            } else if (msg.toLowerCase().includes('error') || msg.toLowerCase().includes('failed')) {
+                counts.failed++;
+                counts.pending = Math.max(0, counts.pending - 1);
+            }
+
+            updateCounters();
+            updateProgressBar();
+
+            // Update live sending counter
+            updateMonitorCard('liveSending', counts.pending);
+
+            // Remove loading state when completed
+            if (counts.pending === 0) {
+                sendButton.classList.remove('loading');
+                sendButton.disabled = false;
+
+                // Auto-reset form after sending
+                setTimeout(() => {
+                    numbersTextarea.value = '';
+                    messageTextarea.value = '';
+                    updateNumberCount();
+                    updateCharCount();
+                    progressContainer.style.display = 'none';
+                    updateMonitorCard('liveSending', 0);
+                    updateMonitorCard('totalRecipients', 0);
+
+                    // Reset counters after a delay
+                    setTimeout(() => {
+                        counts = { sent: 0, pending: 0, failed: 0, total: 0 };
+                        updateCounters();
+                    }, 5000);
+                }, 2000);
+            }
+        }
+
+        function simulateSending(numbers, message) {
+            let index = 0;
+            let processedNumbers = new Set(); // Track processed numbers
+
+            const interval = setInterval(() => {
+                if (index < numbers.length) {
+                    const number = numbers[index];
+
+                    // Skip if already processed (prevent duplicates)
+                    if (processedNumbers.has(number)) {
+                        index++;
+                        return;
+                    }
+
+                    processedNumbers.add(number);
+                    const success = Math.random() > 0.1; // 90% success rate
+
+                    if (success) {
+                        handleMessageStatus(`✅ Message sent successfully to ${number}`);
+                    } else {
+                        handleMessageStatus(`❌ Failed to send message to ${number}`);
+                    }
+
+                    index++;
+                } else {
+                    handleMessageStatus('🎉 All messages processing completed!');
+                    clearInterval(interval);
+                }
+            }, 2000); // 2 seconds interval
+        }
+
+        function addStatusItem(msg) {
+            // Remove empty status if it exists
+            const emptyStatus = statusList.querySelector('.empty-status');
+            if (emptyStatus) {
+                emptyStatus.remove();
+            }
+
+            const li = document.createElement('li');
+            li.className = 'status-item';
+
+            // Add unique identifier to prevent duplicates (Unicode safe)
+            li.setAttribute('data-message', b64EncodeUnicode(msg));
+
+            // Determine status type based on message content
+            let statusClass = 'status-info';
+            if (msg.toLowerCase().includes('success') || msg.toLowerCase().includes('sent') || msg.includes('✅')) {
+                statusClass = 'status-success';
+            } else if (msg.toLowerCase().includes('error') || msg.toLowerCase().includes('failed') || msg.includes('❌')) {
+                statusClass = 'status-error';
+            } else if (msg.toLowerCase().includes('sending') || msg.toLowerCase().includes('processing')) {
+                statusClass = 'status-pending';
+            }
+
+            li.classList.add(statusClass);
+            li.innerHTML = `
+        <div class="status-icon"></div>
+        <span>${msg}</span>
+    `;
+
+            statusList.appendChild(li);
+
+            // Auto scroll to bottom
+            statusList.parentElement.scrollTop = statusList.parentElement.scrollHeight;
+        }
+
+        function updateCounters() {
+            sentCount.textContent = counts.sent;
+            pendingCount.textContent = counts.pending;
+            failedCount.textContent = counts.failed;
+        }
+
+        function updateProgressBar() {
+            if (counts.total > 0) {
+                const progress = ((counts.sent + counts.failed) / counts.total) * 100;
+                progressBar.style.width = progress + '%';
+            }
+        }
+
+        function updateNumberCount() {
+            const numbers = numbersTextarea.value.split('\n')
+                .map(n => n.trim())
+                .filter(n => n.length > 0);
+            numberCount.textContent = `${numbers.length} numbers`;
+
+            // Update total recipients monitor
+            updateMonitorCard('totalRecipients', numbers.length);
+        }
+
+        // Monitor card update functions
+        function updateMonitorCard(cardId, value) {
+            const element = document.getElementById(cardId);
+            if (element) {
+                element.textContent = value.toLocaleString();
+            }
+        }
+
+        function incrementTodayMessages() {
+            const current = parseInt(document.getElementById('todayMessages').textContent.replace(/,/g, '')) || 0;
+            updateMonitorCard('todayMessages', current + 1);
+
+            // Also increment monthly counter
+            const monthlyCurrent = parseInt(document.getElementById('monthMessages').textContent.replace(/,/g, '')) || 0;
+            updateMonitorCard('monthMessages', monthlyCurrent + 1);
+
+            // Save to localStorage
+            saveMessageStats();
+        }
+
+        function saveMessageStats() {
+            const today = new Date().toDateString();
+            const month = new Date().getFullYear() + '-' + (new Date().getMonth() + 1);
+
+            const stats = JSON.parse(safeLocalStorageGet('whatsapp_stats', '{}'));
+
+            stats.today = stats.today || {};
+            stats.monthly = stats.monthly || {};
+
+            stats.today[today] = (stats.today[today] || 0) + 1;
+            stats.monthly[month] = (stats.monthly[month] || 0) + 1;
+
+            safeLocalStorageSet('whatsapp_stats', JSON.stringify(stats));
+        }
+
+        function loadMessageStats() {
+            const today = new Date().toDateString();
+            const month = new Date().getFullYear() + '-' + (new Date().getMonth() + 1);
+
+            const stats = JSON.parse(safeLocalStorageGet('whatsapp_stats', '{}'));
+
+            const todayCount = (stats.today && stats.today[today]) || 0;
+            const monthlyCount = (stats.monthly && stats.monthly[month]) || 0;
+
+            updateMonitorCard('todayMessages', todayCount);
+            updateMonitorCard('monthMessages', monthlyCount);
+        }
+
+        function updateCharCount() {
+            const chars = messageTextarea.value.length;
+            charCount.textContent = `${chars} characters`;
+        }
+
+        // Template Management Functions
+        function loadTemplates() {
+            const templates = JSON.parse(localStorage.getItem('whatsapp_templates') || '[]');
+
+            // Update template select
+            templateSelect.innerHTML = '<option value="">Select a template...</option>';
+            templates.forEach((template, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = template.name;
+                templateSelect.appendChild(option);
+            });
+
+            // Update templates list in modal
+            if (templates.length === 0) {
+                templatesList.innerHTML = `
+                    <p class="text-muted text-center py-3">
+                        <i class="fas fa-folder-open me-2"></i>
+                        No templates saved yet
+                    </p>
+                `;
+            } else {
+                templatesList.innerHTML = templates.map((template, index) => `
+                    <div class="template-item">
+                        <div class="template-name">${template.name}</div>
+                        <div class="template-preview">${template.content}</div>
+                        <div class="template-actions">
+                            <button class="btn btn-primary btn-sm" onclick="useTemplate(${index})">
+                                <i class="fas fa-check me-1"></i>Use
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteTemplate(${index})">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function saveTemplate() {
+            const name = templateName.value.trim();
+            const content = templateContent.value.trim();
+
+            if (!name || !content) {
+                alert('Please enter both template name and content');
+                return;
+            }
+
+            const templates = JSON.parse(localStorage.getItem('whatsapp_templates') || '[]');
+
+            // Check if template name already exists
+            if (templates.find(t => t.name === name)) {
+                alert('Template with this name already exists');
+                return;
+            }
+
+            templates.push({ name, content });
+            localStorage.setItem('whatsapp_templates', JSON.stringify(templates));
+
+            // Clear form
+            templateName.value = '';
+            templateContent.value = '';
+
+            // Reload templates
+            loadTemplates();
+
+            alert('Template saved successfully!');
+        }
+
+        function loadSelectedTemplate() {
+            const selectedIndex = templateSelect.value;
+            if (selectedIndex === '') return;
+
+            const templates = JSON.parse(localStorage.getItem('whatsapp_templates') || '[]');
+            if (templates[selectedIndex]) {
+                messageTextarea.value = templates[selectedIndex].content;
+                updateCharCount();
+            }
+        }
+
+        function useTemplate(index) {
+            const templates = JSON.parse(localStorage.getItem('whatsapp_templates') || '[]');
+            if (templates[index]) {
+                messageTextarea.value = templates[index].content;
+                templateSelect.value = index;
+                updateCharCount();
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('templateModal'));
+                if (modal) modal.hide();
+            }
+        }
+
+        function deleteTemplate(index) {
+            if (!confirm('Are you sure you want to delete this template?')) return;
+
+            const templates = JSON.parse(localStorage.getItem('whatsapp_templates') || '[]');
+            templates.splice(index, 1);
+            localStorage.setItem('whatsapp_templates', JSON.stringify(templates));
+
+            loadTemplates();
+        }
+
+        // Auto-resize textareas
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+
+        numbersTextarea.addEventListener('input', function () {
+            autoResize(this);
+        });
+
+        messageTextarea.addEventListener('input', function () {
+            autoResize(this);
+        });
+
+        templateContent.addEventListener('input', function () {
+            autoResize(this);
+        });
+
+        // Initialize default templates if none exist
+        function initDefaultTemplates() {
+            const templates = JSON.parse(localStorage.getItem('whatsapp_templates') || '[]');
+            if (templates.length === 0) {
+                const defaultTemplates = [
+                    {
+                        name: "Welcome Message",
+                        content: "Welcome to our service! We're excited to have you on board. If you have any questions, feel free to reach out to us."
+                    },
+                    {
+                        name: "Promotional Offer",
+                        content: "🎉 Special Offer Alert! Get 20% off on all our products. Use code SAVE20 at checkout. Limited time offer!"
+                    },
+                    {
+                        name: "Event Invitation",
+                        content: "You're invited to our exclusive event! Join us for an amazing experience. Date: [DATE], Time: [TIME], Venue: [VENUE]. RSVP required."
+                    },
+                    {
+                        name: "Thank You",
+                        content: "Thank you for choosing our services! Your satisfaction is our priority. We appreciate your business and look forward to serving you again."
+                    }
+                ];
+
+                localStorage.setItem('whatsapp_templates', JSON.stringify(defaultTemplates));
+                loadTemplates();
+            }
+        }
+
+        // Initialize default templates on first load
+        initDefaultTemplates();
+
+        // Handle browser storage errors gracefully
+        function safeLocalStorageGet(key, defaultValue = '[]') {
+            try {
+                return localStorage.getItem(key) || defaultValue;
+            } catch (e) {
+                console.warn('LocalStorage not available:', e);
+                return defaultValue;
+            }
+        }
+
+        function safeLocalStorageSet(key, value) {
+            try {
+                localStorage.setItem(key, value);
+                return true;
+            } catch (e) {
+                console.warn('LocalStorage not available:', e);
+                return false;
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function (e) {
+            // Ctrl/Cmd + Enter to send
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                if (!sendButton.disabled) {
+                    form.dispatchEvent(new Event('submit'));
+                }
+            }
+
+            // Escape to clear status
+            if (e.key === 'Escape') {
+                if (statusList.children.length > 0 && !statusList.querySelector('.empty-status')) {
+                    statusList.innerHTML = `
+                        <li class="empty-status">
+                            <i class="fas fa-inbox me-2"></i>
+                            Ready to send messages. Configure recipients and message above.
+                        </li>
+                    `;
+                    counts = { sent: 0, pending: 0, failed: 0, total: 0 };
+                    updateCounters();
+                    progressContainer.style.display = 'none';
+                    updateMonitorCard('liveSending', 0);
+                }
+            }
+        });
+
+        // Add tooltips for better UX
+        function initTooltips() {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+
+        // Initialize tooltips when page loads
+        document.addEventListener('DOMContentLoaded', initTooltips);
+
+        // Validation helpers
+        function validatePhoneNumber(number) {
+            // Basic validation for international format
+            const cleanNumber = number.replace(/\D/g, '');
+            return cleanNumber.length >= 10 && cleanNumber.length <= 15;
+        }
+
+        function validateMessage(message) {
+            return message.trim().length > 0 && message.trim().length <= 1600; // WhatsApp limit
+        }
+
+        // Enhanced form validation
+        function enhancedValidation() {
+            const numbers = numbersTextarea.value.split('\n')
+                .map(n => n.trim())
+                .filter(n => n.length > 0);
+
+            const invalidNumbers = numbers.filter(num => !validatePhoneNumber(num));
+
+            if (invalidNumbers.length > 0) {
+                alert(`Invalid phone numbers found:\n${invalidNumbers.join('\n')}\n\nPlease check the format.`);
+                return false;
+            }
+
+            if (!validateMessage(messageTextarea.value)) {
+                alert('Message is too long (max 1600 characters) or empty');
+                return false;
+            }
+
+            return true;
+        }
+
+        // Update form submission with enhanced validation
+        form.removeEventListener('submit', form.onsubmit);
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            if (!enhancedValidation()) {
+                return;
+            }
+
+            // Reset processed numbers for new sending session
+            processedNumbers.clear();
+
+            const numbersInput = numbersTextarea.value;
+            const message = messageTextarea.value;
+
+            const numbers = numbersInput.split('\n')
+                .map(n => n.trim())
+                .filter(n => n.length > 0);
+
+            // Reset counters
+            counts = { sent: 0, pending: numbers.length, failed: 0, total: numbers.length };
+            updateCounters();
+
+            // Update monitoring dashboard
+            updateMonitorCard('liveSending', numbers.length);
+            updateMonitorCard('totalRecipients', numbers.length);
+
+            // Show progress bar
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+
+            // Disable button
+            sendButton.classList.add('loading');
+            sendButton.disabled = true;
+
+            // Clear status
+            statusList.innerHTML = '';
+
+            if (socket) {
+                socket.emit('send-message', { numbers, message });
+            } else {
+                simulateSending(numbers, message);
+            }
+        });
+
+
+        console.log('WhatsApp Sender Pro initialized successfully!');
+    </script>
+</body>
+
+</html>
