@@ -10,4 +10,8 @@ router.get("/dashbord", function(req, res, next) {
   res.render("dashbord");
 });
 
+router.get("/scanner",(req,res,next)=>{
+  res.render("scanner");
+});
+
 module.exports = router;
