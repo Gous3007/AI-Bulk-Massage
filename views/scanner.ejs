@@ -1,26 +1,206 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WhatsApp Scanner</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="/socket.io/socket.io.js"></script>
-</head>
-<body class="d-flex justify-content-center align-items-center vh-100">
-<div class="text-center">
-    <h1>Scan QR Code to Connect WhatsApp</h1>
-    <div id="qrcode"><p>Waiting for QR...</p></div>
-</div>
 
-<script>
-const socket = io();
-socket.on('qr', (url) => {
-    document.getElementById('qrcode').innerHTML = `<img src="${url}" />`;
-});
-socket.on('connected', () => {
-    window.location.href = '/send-message';
-});
-</script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Scanner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            min-height: 100vh;
+        }
+
+        .scanner-container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 3rem;
+            max-width: 500px;
+            width: 90%;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .whatsapp-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 8px 20px rgba(37, 211, 102, 0.4);
+        }
+
+        .whatsapp-icon svg {
+            width: 50px;
+            height: 50px;
+            fill: white;
+        }
+
+        h1 {
+            color: #128C7E;
+            font-weight: 700;
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #6c757d;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+
+        #qrcode {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 2rem;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px dashed #dee2e6;
+            transition: all 0.3s ease;
+        }
+
+        #qrcode img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            animation: scaleIn 0.4s ease-out;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        #qrcode p {
+            color: #6c757d;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .spinner-border {
+            width: 2rem;
+            height: 2rem;
+            border-width: 0.25em;
+            color: #25D366;
+            margin-bottom: 1rem;
+        }
+
+        .loading-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .instructions {
+            background: #e7f5f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border-left: 4px solid #25D366;
+        }
+
+        .instructions h6 {
+            color: #128C7E;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .instructions ol {
+            margin: 0;
+            padding-left: 1.25rem;
+            font-size: 0.85rem;
+            color: #495057;
+        }
+
+        .instructions li {
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 576px) {
+            .scanner-container {
+                padding: 2rem 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .whatsapp-icon {
+                width: 70px;
+                height: 70px;
+            }
+        }
+    </style>
+</head>
+
+<body class="d-flex justify-content-center align-items-center">
+    <div class="scanner-container">
+        <div class="whatsapp-icon">
+            <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    d="M16 0c-8.837 0-16 7.163-16 16 0 2.825 0.737 5.607 2.137 8.048l-2.137 7.952 7.933-2.127c2.42 1.37 5.173 2.127 8.067 2.127 8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 29.467c-2.482 0-4.908-0.646-7.07-1.87l-0.507-0.292-5.245 1.407 1.417-5.269-0.321-0.525c-1.331-2.197-2.037-4.736-2.037-7.351 0-7.72 6.28-14 14-14s14 6.28 14 14-6.28 14-14 14zM23.246 19.832c-0.353-0.176-2.091-1.030-2.417-1.147-0.326-0.117-0.563-0.176-0.801 0.176s-0.921 1.147-1.129 1.384c-0.208 0.237-0.416 0.267-0.769 0.090s-1.499-0.552-2.854-1.760c-1.055-0.941-1.767-2.103-1.975-2.456s-0.022-0.542 0.154-0.718c0.158-0.157 0.353-0.411 0.529-0.616s0.235-0.353 0.353-0.589c0.117-0.237 0.059-0.442-0.029-0.616s-0.801-1.913-1.097-2.621c-0.288-0.690-0.581-0.596-0.801-0.607-0.207-0.010-0.444-0.012-0.681-0.012s-0.623 0.088-0.949 0.442c-0.326 0.353-1.244 1.207-1.244 2.944s1.273 3.417 1.45 3.654c0.176 0.237 2.505 3.825 6.068 5.364 0.847 0.366 1.509 0.585 2.024 0.748 0.852 0.270 1.627 0.232 2.240 0.141 0.683-0.102 2.091-0.854 2.387-1.679s0.296-1.532 0.207-1.679c-0.088-0.147-0.326-0.237-0.681-0.413z" />
+            </svg>
+        </div>
+
+        <h1 class="text-center">Connect WhatsApp</h1>
+        <p class="subtitle text-center">Scan the QR code to link your device</p>
+
+        <div id="qrcode">
+            <div class="loading-text">
+                <div class="spinner-border" role="status"></div>
+                <p>Waiting for QR code...</p>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h6>📱 How to Connect:</h6>
+            <ol>
+                <li>Open WhatsApp on your phone</li>
+                <li>Tap <strong>Menu</strong> or <strong>Settings</strong></li>
+                <li>Select <strong>Linked Devices</strong></li>
+                <li>Tap <strong>Link a Device</strong></li>
+                <li>Point your phone at this screen to scan the QR code</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        socket.on('qr', (url) => {
+            document.getElementById('qrcode').innerHTML = `<img src="${url}" />`;
+        });
+        socket.on('connected', () => {
+            window.location.href = '/send-message';
+        });
+    </script>
 </body>
+
 </html>
