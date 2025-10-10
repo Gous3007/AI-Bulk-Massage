@@ -6,9 +6,9 @@ router.get('/', function(req, res, next) {
   res.render('index');
 });
 
-router.get("/dashbord", function(req, res, next) {
-  res.render("dashbord");
-});
+// router.get("/dashbord", function(req, res, next) {
+//   res.render("dashbord");
+// });
 
 router.get("/scanner",(req,res,next)=>{
   res.render("scanner");

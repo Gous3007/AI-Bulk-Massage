@@ -1,10 +1,9 @@
 const makeWASocket = require('@whiskeysockets/baileys').default;
-const { useMultiFileAuthState } = require('@whiskeysockets/baileys');
+const { useMultiFileAuthState, DisconnectReason, delay } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const P = require('pino');
 const path = require('path');
 
-// Keep all your imports and setup same as before
 let sock;
 let connected = false;
 
@@ -15,7 +14,8 @@ async function initWhatsApp(io) {
     sock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
-        logger: P({ level: 'silent' })
+        logger: P({ level: 'silent' }),
+        browser: ['Chrome (Linux)', 'Chrome', '121.0.6167.85']
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -25,9 +25,8 @@ async function initWhatsApp(io) {
 
         if (qr) {
             console.log('🔹 QR Code received, scan it from the scanner page.');
-            qrcode.toString(qr, { type: 'terminal' }, (err, url) => {
+            qrcode.toDataURL(qr, (err, url) => {
                 if (err) console.error(err);
-                console.log(url);
                 io.emit('qr', url);
             });
         }
@@ -40,42 +39,84 @@ async function initWhatsApp(io) {
 
         if (connection === 'close') {
             connected = false;
-            console.log('❌ WhatsApp disconnected.');
-            if (lastDisconnect) {
-                console.log('Last disconnect reason:', lastDisconnect.error?.output?.statusCode);
+            const code = lastDisconnect?.error?.output?.statusCode;
+            console.log('❌ WhatsApp disconnected. Reason:', code);
+            if (code !== DisconnectReason.loggedOut) {
+                console.log('🔁 Reconnecting in 3s...');
+                setTimeout(() => initWhatsApp(io), 3000);
+            } else {
+                console.log('🧹 Session expired, please scan again.');
             }
         }
     });
 
-    // Bulk send function with delay
-    async function sendBulkMessages(numbers, message) {
-        for (let i = 0; i < numbers.length; i++) {
-            const number = numbers[i];
-            try {
-                await sock.sendMessage(`${number}@s.whatsapp.net`, { text: message });
-                io.emit('message-status', `✅ Message sent to ${number} (${i + 1}/${numbers.length})`);
-                console.log(`✅ Message sent to ${number} (${i + 1}/${numbers.length})`);
-                await new Promise(resolve => setTimeout(resolve, 3000)); // 3 seconds delay
-            } catch (err) {
-                io.emit('message-status', `❌ Failed to send to ${number}`);
-                console.error(`❌ Failed to send to ${number}`, err);
-            }
-        }
-    }
-
-    // Handle frontend
+    // ✅ SOCKET EVENT HANDLERS - यह missing था!
     io.on('connection', (socket) => {
-        socket.on('send-message', async ({ numbers, message }) => {
-            if (!connected) return socket.emit('message-status', 'WhatsApp not connected!');
+        console.log('👤 Client connected:', socket.id);
 
-            // Expect numbers as array of strings
-            if (!Array.isArray(numbers)) {
-                numbers = numbers.split(',').map(n => n.trim()); // if user sends comma separated
+        // Send current connection status
+        socket.emit(connected ? 'connected' : 'disconnected');
+
+        // ✅ MESSAGE SENDING HANDLER - यह main missing part था!
+        socket.on('send-message', async ({ numbers, message }) => {
+            console.log(`📤 Sending messages to ${numbers.length} numbers`);
+
+            if (!connected) {
+                socket.emit('message-status', '❌ WhatsApp is not connected. Please scan QR code first.');
+                return;
             }
 
-            sendBulkMessages(numbers, message);
+            for (const number of numbers) {
+                try {
+                    // Format number properly (add country code if missing)
+                    let formattedNumber = number.replace(/\D/g, '');
+
+                    // Add country code if not present (default: India +91)
+                    if (!formattedNumber.startsWith('91') && formattedNumber.length === 10) {
+                        formattedNumber = '91' + formattedNumber;
+                    }
+
+                    // WhatsApp format: number@s.whatsapp.net
+                    const jid = formattedNumber + '@s.whatsapp.net';
+
+                    // Send message
+                    await sock.sendMessage(jid, { text: message });
+
+                    // Notify success
+                    socket.emit('message-status', `✅ Message sent successfully to ${number}`);
+                    console.log(`✅ Sent to ${number}`);
+
+                    // Delay between messages to avoid spam detection (2-5 seconds)
+                    await delay(2000 + Math.random() * 3000);
+
+                } catch (error) {
+                    console.error(`❌ Error sending to ${number}:`, error.message);
+                    socket.emit('message-status', `❌ Failed to send message to ${number}: ${error.message}`);
+                }
+            }
+
+            socket.emit('message-status', '🎉 All messages processing completed!');
+            console.log('✅ Batch sending completed');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('👤 Client disconnected:', socket.id);
         });
     });
 }
 
-module.exports = { initWhatsApp };
+// Helper function to check if WhatsApp is connected
+function isConnected() {
+    return connected;
+}
+
+// Helper function to get socket instance
+function getSocket() {
+    return sock;
+}
+
+module.exports = {
+    initWhatsApp,
+    isConnected,
+    getSocket
+};
