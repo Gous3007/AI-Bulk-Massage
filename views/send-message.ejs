@@ -845,58 +845,6 @@
         templateSelect.addEventListener('change', loadSelectedTemplate);
         saveTemplateBtn.addEventListener('click', saveTemplate);
 
-        // Form submission
-        // form.addEventListener('submit', (e) => {
-        //     e.preventDefault();
-
-        //     // Reset processed numbers for new sending session
-        //     processedNumbers.clear();
-
-        //     const numbersInput = numbersTextarea.value;
-        //     const message = messageTextarea.value;
-
-        //     // Split numbers by newlines and filter out empty lines
-        //     const numbers = numbersInput.split('\n')
-        //         .map(n => n.trim())
-        //         .filter(n => n.length > 0);
-
-        //     if (numbers.length === 0) {
-        //         alert('Please enter at least one phone number');
-        //         return;
-        //     }
-
-        //     if (!message.trim()) {
-        //         alert('Please enter a message');
-        //         return;
-        //     }
-
-        //     // Reset counters
-        //     counts = { sent: 0, pending: numbers.length, failed: 0, total: numbers.length };
-        //     updateCounters();
-
-        //     // Show progress bar
-        //     progressContainer.style.display = 'block';
-        //     progressBar.style.width = '0%';
-
-        //     // Add loading state
-        //     sendButton.classList.add('loading');
-        //     sendButton.disabled = true;
-
-        //     // Clear status list
-        //     statusList.innerHTML = '';
-
-        //     // Update monitoring dashboard
-        //     updateMonitorCard('liveSending', numbers.length);
-        //     updateMonitorCard('totalRecipients', numbers.length);
-
-        //     if (socket) {
-        //         // Send to server via Socket.IO
-        //         socket.emit('send-message', { numbers, message });
-        //     } else {
-        //         // Demo mode - simulate sending
-        //         simulateSending(numbers, message);
-        //     }
-        // });
 
         // Socket.IO event listeners (if available)
         if (socket) {
