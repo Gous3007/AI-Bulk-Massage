@@ -1,188 +1,278 @@
 const makeWASocket = require('@whiskeysockets/baileys').default;
-const { useMultiFileAuthState, DisconnectReason, delay } = require('@whiskeysockets/baileys');
+const { useMultiFileAuthState, DisconnectReason, delay, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const P = require('pino');
 const path = require('path');
+const fs = require('fs');
 
-let sock;
+let sock = null;
 let connected = false;
 let sendingInProgress = false;
-const messageQueue = new Map(); // ✅ Track sent messages with 24-hour cooldown
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 3;
+const messageQueue = new Map();
+
+function cleanup() {
+    if (sock) {
+        try {
+            sock.ws.close();
+            sock.end();
+            sock = null;
+        } catch (err) {
+            // Ignore cleanup errors
+        }
+    }
+    connected = false;
+}
 
 async function initWhatsApp(io) {
+    // Cleanup previous connection
+    cleanup();
+    reconnectAttempts++;
+
+    if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
+        console.log('❌ Max reconnection attempts reached. Please refresh the page.');
+        io.emit('max-reconnects');
+        return;
+    }
+
     const authFolder = path.join(__dirname, '../auth_info');
-    const { state, saveCreds } = await useMultiFileAuthState(authFolder);
 
-    sock = makeWASocket({
-        auth: state,
-        printQRInTerminal: false,
-        logger: P({ level: 'silent' }),
-        browser: ['Chrome (Linux)', 'Chrome', '121.0.6167.85'],
-        connectTimeoutMs: 60000,
-        defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 30000,
-        markOnlineOnConnect: false,
-        syncFullHistory: false,
-        getMessage: async () => undefined
-    });
+    // Ensure auth directory exists
+    if (!fs.existsSync(authFolder)) {
+        fs.mkdirSync(authFolder, { recursive: true });
+    }
 
-    sock.ev.on('creds.update', saveCreds);
+    try {
+        const { state, saveCreds } = await useMultiFileAuthState(authFolder);
+        const { version, isLatest } = await fetchLatestBaileysVersion();
 
-    sock.ev.on('connection.update', async (update) => {
-        const { qr, connection, lastDisconnect } = update;
+        console.log(`🔗 Using WA v${version.join('.')}, isLatest: ${isLatest}`);
 
-        if (qr) {
-            console.log('🔹 QR Code received, scan it from the scanner page.');
-            qrcode.toDataURL(qr, (err, url) => {
-                if (err) console.error(err);
-                io.emit('qr', url);
-            });
-        }
+        sock = makeWASocket({
+            auth: state,
+            logger: P({ level: 'silent' }),
+            version,
+            browser: ['Ubuntu', 'Chrome', '120.0.0.0'],
+            connectTimeoutMs: 60000,
+            defaultQueryTimeoutMs: 60000,
+            keepAliveIntervalMs: 10000,
+            markOnlineOnConnect: false,
+            syncFullHistory: false,
+            getMessage: async () => undefined,
+            retryRequestDelayMs: 2000,
+            fireInitQueries: false, // Disable initial queries to reduce load
+            generateHighQualityLinkPreview: false,
+            linkPreviewImageThumbnailWidth: 192,
+        });
 
-        if (connection === 'open') {
-            connected = true;
-            console.log('✅ WhatsApp connected!');
-            io.emit('connected');
-        }
+        sock.ev.on('creds.update', saveCreds);
 
-        if (connection === 'close') {
-            connected = false;
-            const code = lastDisconnect?.error?.output?.statusCode;
-            console.log('❌ WhatsApp disconnected. Reason:', code);
+        sock.ev.on('connection.update', async (update) => {
+            const { connection, lastDisconnect, qr, isNewLogin } = update;
 
-            const shouldReconnect = code !== DisconnectReason.loggedOut;
+            console.log('🔗 Connection update:', connection, qr ? 'QR Received' : '', isNewLogin ? 'New Login' : '');
 
-            if (shouldReconnect) {
-                console.log('🔁 Reconnecting in 5s...');
-                await delay(5000);
-                initWhatsApp(io);
-            } else {
-                console.log('🧹 Session logged out, please scan again.');
-                io.emit('logged-out');
+            if (qr) {
+                reconnectAttempts = 0; // Reset on new QR
+                try {
+                    console.log('📱 Generating QR code...');
+                    const qrDataUrl = await qrcode.toDataURL(qr);
+                    io.emit('qr', qrDataUrl);
+                    io.emit('status', 'Scan the QR code with WhatsApp');
+                    console.log('✅ QR code emitted to frontend');
+                } catch (err) {
+                    console.error('❌ QR generation failed:', err);
+                    io.emit('status', 'QR generation failed');
+                }
             }
-        }
-    });
 
-    setupSocketHandlers(io);
+            if (connection === 'close') {
+                connected = false;
+                const code = lastDisconnect?.error?.output?.statusCode;
+                const reason = lastDisconnect?.error?.output?.payload?.reason || code;
+
+                console.log('❌ WhatsApp disconnected. Reason:', reason);
+
+                // Handle specific disconnect reasons
+                if (code === DisconnectReason.loggedOut || code === 405) {
+                    console.log('🧹 Session invalid/expired, clearing auth data...');
+                    cleanup();
+
+                    // Delete auth files
+                    try {
+                        if (fs.existsSync(authFolder)) {
+                            fs.rmSync(authFolder, { recursive: true, force: true });
+                            console.log('✅ Auth files deleted successfully');
+                        }
+                    } catch (cleanupErr) {
+                        console.error('❌ Failed to delete auth files:', cleanupErr);
+                    }
+
+                    io.emit('logged-out');
+                    io.emit('status', 'Session expired. Please refresh the page and scan QR again.');
+
+                    // Don't auto-reconnect for these errors
+                    return;
+                }
+
+                if (code === DisconnectReason.connectionLost || code === DisconnectReason.timedOut) {
+                    // Reconnect for temporary issues
+                    const delayTime = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
+                    console.log(`🔁 Reconnecting in ${delayTime / 1000}s... (Attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+                    setTimeout(() => initWhatsApp(io), delayTime);
+                    return;
+                }
+
+                // For other errors, wait longer before retry
+                const delayTime = 5000;
+                console.log(`🔁 Reconnecting in ${delayTime / 1000}s...`);
+                setTimeout(() => initWhatsApp(io), delayTime);
+            }
+
+            if (connection === 'open') {
+                connected = true;
+                reconnectAttempts = 0;
+                console.log('✅ WhatsApp connected successfully');
+                io.emit('connected');
+                io.emit('status', 'WhatsApp connected successfully!');
+            }
+
+            if (connection === 'connecting') {
+                io.emit('status', 'Connecting to WhatsApp...');
+            }
+        });
+
+        setupSocketHandlers(io);
+
+    } catch (error) {
+        console.error('❌ Initialization error:', error);
+        io.emit('status', `Initialization failed: ${error.message}`);
+
+        // Retry after delay
+        setTimeout(() => initWhatsApp(io), 5000);
+    }
 }
 
 function setupSocketHandlers(io) {
+    // Remove existing connection listeners to prevent duplicates
+    io.removeAllListeners('connection');
+
     io.on('connection', (socket) => {
         console.log('👤 Client connected:', socket.id);
 
-        socket.emit(connected ? 'connected' : 'disconnected');
+        // Set max listeners
+        socket.setMaxListeners(15);
+
+        // Emit current connection status
+        if (connected) {
+            socket.emit('connected');
+            socket.emit('status', 'WhatsApp connected successfully!');
+        } else {
+            socket.emit('disconnected');
+            socket.emit('status', 'Please scan QR code to connect WhatsApp');
+        }
+
+        socket.on('restart-connection', () => {
+            console.log('🔄 Manual restart requested by client');
+            reconnectAttempts = 0;
+            initWhatsApp(io);
+        });
+
+        socket.on('force-refresh', () => {
+            console.log('🔄 Force refresh requested');
+            // Delete auth folder and restart
+            const authFolder = path.join(__dirname, '../auth_info');
+            try {
+                if (fs.existsSync(authFolder)) {
+                    fs.rmSync(authFolder, { recursive: true, force: true });
+                    console.log('✅ Auth files deleted');
+                }
+            } catch (err) {
+                console.error('❌ Failed to delete auth files:', err);
+            }
+            reconnectAttempts = 0;
+            setTimeout(() => initWhatsApp(io), 1000);
+        });
 
         socket.on('send-message', async ({ numbers, message }) => {
-            console.log(`📤 Request to send messages to ${numbers.length} numbers`);
+            if (!sock || !connected) {
+                socket.emit('message-status', '❌ WhatsApp is not connected. Please scan QR code first.');
+                return;
+            }
 
             if (sendingInProgress) {
                 socket.emit('message-status', '⚠️ Another batch is already being sent. Please wait.');
                 return;
             }
 
-            if (!connected) {
-                socket.emit('message-status', '❌ WhatsApp is not connected. Please scan QR code first.');
-                return;
-            }
-
             sendingInProgress = true;
-            const sentNumbers = new Set();
-            let messageCounter = 0; // ✅ Track messages for 20-message pause
+            console.log(`📤 Sending messages to ${numbers.length} numbers`);
 
             try {
+                let successCount = 0;
+                let failCount = 0;
+
                 for (let i = 0; i < numbers.length; i++) {
                     const number = numbers[i];
 
-                    // ✅ Skip if already sent in this batch
-                    if (sentNumbers.has(number)) {
-                        console.log(`⏭️ Skipping duplicate: ${number}`);
-                        continue;
-                    }
-
                     try {
-                        // Format number properly
                         let formattedNumber = number.replace(/\D/g, '');
-
                         if (!formattedNumber.startsWith('91') && formattedNumber.length === 10) {
                             formattedNumber = '91' + formattedNumber;
                         }
-
                         const jid = formattedNumber + '@s.whatsapp.net';
 
-                        // ✅ Check 24-hour cooldown
-                        const messageKey = formattedNumber; // Use only number for 24-hour tracking
+                        // Cooldown check
+                        const messageKey = formattedNumber;
                         const lastSent = messageQueue.get(messageKey);
                         const now = Date.now();
-                        const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+                        const twentyFourHours = 24 * 60 * 60 * 1000;
 
                         if (lastSent && (now - lastSent) < twentyFourHours) {
                             const remainingTime = twentyFourHours - (now - lastSent);
                             const hoursLeft = Math.floor(remainingTime / (60 * 60 * 1000));
                             const minutesLeft = Math.floor((remainingTime % (60 * 60 * 1000)) / (60 * 1000));
-
-                            console.log(`⏭️ Message already sent to ${number} within 24 hours`);
                             socket.emit('message-status', `⏭️ Skipped ${number} (Wait ${hoursLeft}h ${minutesLeft}m)`);
+                            failCount++;
                             continue;
                         }
 
                         // Send message
                         await sock.sendMessage(jid, { text: message });
-
-                        // Mark as sent with current timestamp
-                        sentNumbers.add(number);
                         messageQueue.set(messageKey, now);
-                        messageCounter++;
+                        successCount++;
 
-                        socket.emit('message-status', `✅ Message sent to ${number} (${i + 1}/${numbers.length})`);
-                        console.log(`✅ Sent to ${number}`);
+                        socket.emit('message-status', `✅ Sent to ${number} (${i + 1}/${numbers.length})`);
 
-                        // ✅ Smart delay logic
+                        // Delay between messages
                         if (i < numbers.length - 1) {
-                            let delayTime;
-
-                            // After every 20 messages, wait 5 seconds
-                            if (messageCounter > 0 && messageCounter % 20 === 0) {
-                                delayTime = 5000; // 5 seconds after 20 messages
-                                console.log(`⏸️ Taking 5-second break after ${messageCounter} messages...`);
-                                socket.emit('message-status', `⏸️ Break: Waiting 5 seconds after 20 messages...`);
-                            } else {
-                                delayTime = 3000; // 3 seconds regular delay
-                                console.log(`⏳ Waiting 3 seconds before next message...`);
-                            }
-
-                            // Send countdown updates
-                            const seconds = Math.ceil(delayTime / 1000);
-                            for (let remaining = seconds; remaining > 0; remaining--) {
-                                socket.emit('message-status', `⏳ Next message in ${remaining}s...`);
-                                await delay(1000);
-                            }
+                            const delayTime = (successCount % 20 === 0) ? 5000 : 2000;
+                            socket.emit('message-status', `⏳ Waiting ${delayTime / 1000}s...`);
+                            await delay(delayTime);
                         }
 
-                    } catch (error) {
-                        console.error(`❌ Error sending to ${number}:`, error.message);
-                        socket.emit('message-status', `❌ Failed: ${number} - ${error.message}`);
-                        await delay(3000);
+                    } catch (err) {
+                        console.error(`❌ Error sending to ${number}:`, err.message);
+                        socket.emit('message-status', `❌ Failed: ${number} - ${err.message}`);
+                        failCount++;
+                        await delay(2000);
                     }
                 }
 
-                socket.emit('message-status', '🎉 All messages sent successfully!');
-                console.log('✅ Batch sending completed');
+                socket.emit('message-status',
+                    `🎉 Batch completed! ✅ ${successCount} successful, ❌ ${failCount} failed`);
 
-            } catch (error) {
-                console.error('❌ Batch sending error:', error);
-                socket.emit('message-status', `❌ Error: ${error.message}`);
+            } catch (err) {
+                console.error('❌ Batch sending error:', err);
+                socket.emit('message-status', `❌ Error: ${err.message}`);
             } finally {
                 sendingInProgress = false;
-
-                // ✅ Clean old entries from queue (older than 24 hours)
+                // Clean up old queue entries
                 const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
                 for (const [key, timestamp] of messageQueue.entries()) {
-                    if (timestamp < twentyFourHoursAgo) {
-                        messageQueue.delete(key);
-                    }
+                    if (timestamp < twentyFourHoursAgo) messageQueue.delete(key);
                 }
-
-                console.log(`📊 Queue size: ${messageQueue.size} numbers tracked`);
             }
         });
 
@@ -193,7 +283,7 @@ function setupSocketHandlers(io) {
 }
 
 function isConnected() {
-    return connected;
+    return connected && sock !== null;
 }
 
 function getSocket() {
@@ -205,22 +295,16 @@ function clearMessageQueue() {
     console.log('🧹 Message queue cleared');
 }
 
-// ✅ Get remaining time for a number
 function getNumberCooldown(number) {
     const formattedNumber = number.replace(/\D/g, '');
     const lastSent = messageQueue.get(formattedNumber);
-
-    if (!lastSent) {
-        return { canSend: true, remainingTime: 0 };
-    }
+    if (!lastSent) return { canSend: true, remainingTime: 0 };
 
     const now = Date.now();
     const twentyFourHours = 24 * 60 * 60 * 1000;
     const timePassed = now - lastSent;
 
-    if (timePassed >= twentyFourHours) {
-        return { canSend: true, remainingTime: 0 };
-    }
+    if (timePassed >= twentyFourHours) return { canSend: true, remainingTime: 0 };
 
     return {
         canSend: false,
@@ -235,5 +319,6 @@ module.exports = {
     isConnected,
     getSocket,
     clearMessageQueue,
-    getNumberCooldown
+    getNumberCooldown,
+    cleanup
 };
